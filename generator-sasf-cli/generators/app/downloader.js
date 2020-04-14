@@ -1,6 +1,6 @@
 "use strict";
 const fs = require('fs');
-const request = require('request');
+let request = require('request');
 var download = function (uri, filename, callback) {
     request.head(uri, function (err, res, body) {
         console.log('content-type:', res.headers['content-type']);

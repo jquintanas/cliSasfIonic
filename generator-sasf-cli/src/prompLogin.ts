@@ -24,12 +24,12 @@ export class prompLogin {
         this.empresa = "";
     }
 
-    private async findById(id: Number, clave: string): Promise<any> {
+    private async findById(id: any, clave: string): Promise<any> {
         return await request({
             uri: this.url + id,
             json: true,
             body: {
-                clave: "1234"
+                clave: clave
             }
         }).then((data: any) => {
             return data;
@@ -50,28 +50,21 @@ export class prompLogin {
                 data: dt,
                 colores: colors
             }
-            if (isNaN(props.usuario)) {
-                console.log("usuario invalido.")
+            this.usuario = props.usuario;
+            this.clave = props.clave;
+            await this.findById(this.usuario, this.clave).then((dat: any) => {
+                if (dat != null) {
+                    usuario.data = dat;
+                }
+
+            });
+            usuario.user = this.usuario;
+            usuario.clave = this.clave;
+            if (usuario.data != null) {
+                usuario.status = true;
             }
             else {
-                this.usuario = Number(props.usuario);
-                this.clave = props.clave;
-                await this.findById(this.usuario, this.clave).then((dat: any) => {
-                    if (dat != null) {
-                        this.empresa = dat.empresa.replace(/ /g, "").toLowerCase();
-                        dat.empresa = this.empresa;
-                        usuario.data = dat;
-                    }
-
-                });
-                usuario.user = this.usuario;
-                usuario.clave = this.clave;
-                if (usuario.data != null) {
-                    usuario.status = true;
-                }
-                else {
-                    console.log("Credenciales invalidas, verifique usuario y clave.")
-                }
+                console.log("Credenciales invalidas, verifique usuario y clave 2.")
             }
             return usuario;
         });

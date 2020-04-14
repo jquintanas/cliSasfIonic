@@ -1,5 +1,5 @@
 const fs = require('fs');
-const request = require('request');
+let request = require('request');
 
 var download = function (uri:string, filename:string, callback:any) {
     request.head(uri, function (err:any, res:any, body:any) {

@@ -12,10 +12,12 @@ import { metadataGenerador } from "./metadataGenerador";
 import { generadorIonic } from "./generadorIonic";
 import { colores } from "./colores";
 import { metadalaColores } from "./metadataColores";
+import { prompEmpresas } from "./prompEmpresas";
 
 //variables personalizadas
 const respLogin = null;
 const respDatosAutor = null;
+const respEmpresa = null;
 const colorRespuesta: metadalaColores[] = new Array();
 
 
@@ -30,21 +32,29 @@ module.exports = class extends Generator {
     let protLogin: prompLogin = new prompLogin();
     this.respLogin = await protLogin.generarPrompts();
     if (this.respLogin.status) {
-      let color: colores = new colores(this.respLogin.user);
-      await color.buscarColores().then((colores: any) => {
-        if (colores.length > 0) {
-          console.log("Colores y fuentes obtenidas.");
-          this.colorRespuesta = colores;
-        }
-        else {
+      let empresa:prompEmpresas = new prompEmpresas();
+      this.respEmpresa = await empresa.generarPrompts();
+      if(this.respEmpresa != null){
+        let color: colores = new colores(this.respEmpresa.id);
+        await color.buscarColores().then((colores: any) => {
+          if (colores.length > 0) {
+            console.log("Colores y fuentes obtenidas.");
+            this.colorRespuesta = colores;
+          }
+          else {
+            console.log("No hay colores disponibles");
+          }
+        }, (err: any) => {
           console.log("No hay colores disponibles");
-        }
-      }, (err: any) => {
-        console.log("No hay colores disponibles");
-        console.log(err);
-      })
-      let protDatosAutor: prompDatosAutor = new prompDatosAutor(this.appname);
-      this.respDatosAutor = await protDatosAutor.generarPrompts();
+          console.log(err);
+        })
+        let protDatosAutor: prompDatosAutor = new prompDatosAutor(this.appname);
+        this.respDatosAutor = await protDatosAutor.generarPrompts();
+      }
+      else {
+        this.respLogin.status = false;
+      }
+      
     }
     return;
   }
@@ -52,6 +62,7 @@ module.exports = class extends Generator {
   writing() {
     if (this.respLogin.status) {
       let fontUrl: string = "";
+      let nombreEmpresa = this.respEmpresa.nombre.replace(/ /g, "");
       //se agregan archivos personalizados
       console.log("Generando proyecto de ionic");
       let genIonic: generadorIonic = new generadorIonic();
@@ -61,7 +72,7 @@ module.exports = class extends Generator {
 
       genIonic.addDatoConAdicional("_package-lock.json", "package-lock.json", {
         appName: this.respDatosAutor.proyecto,
-        empresa: this.respLogin.data.empresa
+        empresa: nombreEmpresa
       });
 
       genIonic.addDatoConAdicional("_package.json", "package.json", {
@@ -69,7 +80,7 @@ module.exports = class extends Generator {
         repositorio: this.respDatosAutor.repositorio,
         descripcion: this.respDatosAutor.descripcion,
         autor: this.respDatosAutor.autor,
-        empresa: this.respLogin.data.empresa
+        empresa: nombreEmpresa
       });
       let jsonDatos = {
         color1: "",
@@ -134,7 +145,7 @@ module.exports = class extends Generator {
 
 
       //copiado de logo
-      let logoUrl: string = this.respLogin.data.logo;
+      let logoUrl: string = this.respEmpresa.logo;
       if (logoUrl != "") {
         try {
           imageDownloader(logoUrl, "resources/logo.png", function () {
@@ -146,9 +157,32 @@ module.exports = class extends Generator {
           console.log("No se pudo descargar el logo.");
         }
       }
+      if (logoUrl != "") {
+        try {
+          imageDownloader(logoUrl, "src/assets/logo.png", function () {
+            console.log(`${logoUrl} imagen descargada!!`);
+            console.log("logo.png creado en directorio assets.")
+          });
+        } catch (error) {
+          console.log(error);
+          console.log("No se pudo descargar el logo.");
+        }
+      }
+      //copiado de favicon
+      if (logoUrl != "") {
+        try {
+          imageDownloader(logoUrl, "src/assets/icon/favicon.png", function () {
+            console.log(`${logoUrl} favicon descargado!!`);
+            console.log("favicon.png creado en directorio icon.")
+          });
+        } catch (error) {
+          console.log(error);
+          console.log("No se pudo descargar el favicon.");
+        }
+      }
 
       //copiado de splash
-      let splashUrl: string = this.respLogin.data.splash;
+      let splashUrl: string = this.respEmpresa.splash;
       if (splashUrl != "") {
         try {
           imageDownloader(splashUrl, "resources/splash.png", function () {

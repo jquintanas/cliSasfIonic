@@ -36,7 +36,7 @@ class prompLogin {
                 uri: this.url + id,
                 json: true,
                 body: {
-                    clave: "1234"
+                    clave: clave
                 }
             }).then((data) => {
                 return data;
@@ -56,27 +56,20 @@ class prompLogin {
                 data: dt,
                 colores: colors
             };
-            if (isNaN(props.usuario)) {
-                console.log("usuario invalido.");
+            this.usuario = props.usuario;
+            this.clave = props.clave;
+            yield this.findById(this.usuario, this.clave).then((dat) => {
+                if (dat != null) {
+                    usuario.data = dat;
+                }
+            });
+            usuario.user = this.usuario;
+            usuario.clave = this.clave;
+            if (usuario.data != null) {
+                usuario.status = true;
             }
             else {
-                this.usuario = Number(props.usuario);
-                this.clave = props.clave;
-                yield this.findById(this.usuario, this.clave).then((dat) => {
-                    if (dat != null) {
-                        this.empresa = dat.empresa.replace(/ /g, "").toLowerCase();
-                        dat.empresa = this.empresa;
-                        usuario.data = dat;
-                    }
-                });
-                usuario.user = this.usuario;
-                usuario.clave = this.clave;
-                if (usuario.data != null) {
-                    usuario.status = true;
-                }
-                else {
-                    console.log("Credenciales invalidas, verifique usuario y clave.");
-                }
+                console.log("Credenciales invalidas, verifique usuario y clave 2.");
             }
             return usuario;
         }));
