@@ -1,9 +1,8 @@
 let inquirer = require('inquirer');
-const request = require("request-promise")
+const request = require("request-promise");
 export class prompLogin {
     private usuario: number;
     private clave: string;
-    private empresa: string;
     private url: string = "https://api-sasf.herokuapp.com/api/login/";
     private prompts = [
         {
@@ -21,7 +20,6 @@ export class prompLogin {
     constructor() {
         this.usuario = 0;
         this.clave = "";
-        this.empresa = "";
     }
 
     private async findById(id: any, clave: string): Promise<any> {

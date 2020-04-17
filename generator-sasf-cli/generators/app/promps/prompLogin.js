@@ -28,7 +28,6 @@ class prompLogin {
         ];
         this.usuario = 0;
         this.clave = "";
-        this.empresa = "";
     }
     findById(id, clave) {
         return __awaiter(this, void 0, void 0, function* () {

@@ -1,9 +1,14 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 class generadorIonic {
-    constructor() {
+    constructor(plantilla) {
         this.rutabase = "ionic/";
+        this.rutabase += plantilla + "/";
         this.arrayArchivos = new Array();
+        this.arrayArchivos.push({
+            origen: this.rutabase + "resources",
+            destino: "resources"
+        });
         this.arrayArchivos.push({
             origen: this.rutabase + "e2e",
             destino: "e2e"

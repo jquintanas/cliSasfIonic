@@ -1,10 +1,9 @@
 export interface metadalaColores {
-    esPrimario: boolean;
+    tipoColor: string;
     color: string;
     colorRGB: string;
     contraste: string;
     contrasteRGB: string;
     shade: string;
     tint: string;
-    font: string;
 }

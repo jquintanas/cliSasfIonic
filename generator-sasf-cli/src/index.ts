@@ -3,23 +3,24 @@ const fss = require('fs');
 const Generator = require('yeoman-generator');
 const chalk = require('chalk');
 const yosay = require('yosay');
-const imageDownloader = require('./downloader').download;
 
 //imports personalizados
-import { prompLogin } from "./prompLogin";
-import { prompDatosAutor } from "./prompDatosAutor";
-import { metadataGenerador } from "./metadataGenerador";
-import { generadorIonic } from "./generadorIonic";
-import { colores } from "./colores";
-import { metadalaColores } from "./metadataColores";
-import { prompEmpresas } from "./prompEmpresas";
+import { prompLogin } from "./promps/prompLogin";
+import { prompDatosAutor } from "./promps/prompDatosAutor";
+import { metadataGenerador } from "./interfaces/metadataGenerador";
+import { generadorIonic } from "./generadores/generadorIonic";
+import { colores } from "./models/colores";
+import { prompEmpresas } from "./promps/prompEmpresas";
+import { prompTemplates } from "./promps/prompTemplates";
+import { Fuentes } from "./models/fuentes";
+import { Imagenes } from "./models/Imagenes";
 
 //variables personalizadas
 const respLogin = null;
 const respDatosAutor = null;
 const respEmpresa = null;
-const colorRespuesta: metadalaColores[] = new Array();
-
+const plantilla: any = null;
+const jsonDatos:any = null;
 
 
 module.exports = class extends Generator {
@@ -32,40 +33,35 @@ module.exports = class extends Generator {
     let protLogin: prompLogin = new prompLogin();
     this.respLogin = await protLogin.generarPrompts();
     if (this.respLogin.status) {
-      let empresa:prompEmpresas = new prompEmpresas();
-      this.respEmpresa = await empresa.generarPrompts();
-      if(this.respEmpresa != null){
-        let color: colores = new colores(this.respEmpresa.id);
-        await color.buscarColores().then((colores: any) => {
-          if (colores.length > 0) {
-            console.log("Colores y fuentes obtenidas.");
-            this.colorRespuesta = colores;
-          }
-          else {
-            console.log("No hay colores disponibles");
-          }
-        }, (err: any) => {
-          console.log("No hay colores disponibles");
-          console.log(err);
-        })
-        let protDatosAutor: prompDatosAutor = new prompDatosAutor(this.appname);
-        this.respDatosAutor = await protDatosAutor.generarPrompts();
+      //selección de plantilla
+      let protPlantilla: prompTemplates = new prompTemplates();
+      this.plantilla = await protPlantilla.generarPrompts();
+      if (this.plantilla != null) {
+        //selección de empresa
+        let empresa: prompEmpresas = new prompEmpresas();
+        this.respEmpresa = await empresa.generarPrompts();
+        if (this.respEmpresa != null) {
+          //datos de autor
+          let protDatosAutor: prompDatosAutor = new prompDatosAutor(this.appname);
+          this.respDatosAutor = await protDatosAutor.generarPrompts();
+          let color: colores = new colores(this.respEmpresa.id);
+          this.jsonDatos = await color.generarColores();
+        }
+        else {
+          this.respLogin.status = false;
+        }
       }
-      else {
-        this.respLogin.status = false;
-      }
-      
     }
     return;
   }
 
   writing() {
-    if (this.respLogin.status) {
-      let fontUrl: string = "";
+    if (this.respLogin.status && this.plantilla != null) {
+      //let fontUrl: string = "";
       let nombreEmpresa = this.respEmpresa.nombre.replace(/ /g, "");
       //se agregan archivos personalizados
       console.log("Generando proyecto de ionic");
-      let genIonic: generadorIonic = new generadorIonic();
+      let genIonic: generadorIonic = new generadorIonic(this.plantilla);
       genIonic.addDatoConAdicional("_capacitor.config.json", "capacitor.config.json", {
         appName: this.respDatosAutor.proyecto
       });
@@ -82,43 +78,10 @@ module.exports = class extends Generator {
         autor: this.respDatosAutor.autor,
         empresa: nombreEmpresa
       });
-      let jsonDatos = {
-        color1: "",
-        color1RGB: "",
-        contraste1: "",
-        contraste1RGB: "",
-        shade1: "",
-        tint1: "",
-        color2: "",
-        color2RGB: "",
-        contraste2: "",
-        contraste2RGB: "",
-        shade2: "",
-        tint2: ""
-      };
-      for (let k = 0; k < this.colorRespuesta.length; k++) {
-        if (this.colorRespuesta[k].esPrimario) {
-          fontUrl = this.colorRespuesta[k].font;
-          jsonDatos.color1 = this.colorRespuesta[k].color;
-          jsonDatos.color1RGB = this.colorRespuesta[k].colorRGB;
-          jsonDatos.contraste1 = this.colorRespuesta[k].contraste;
-          jsonDatos.contraste1RGB = this.colorRespuesta[k].contrasteRGB;
-          jsonDatos.shade1 = this.colorRespuesta[k].shade;
-          jsonDatos.tint1 = this.colorRespuesta[k].tint;
-        }
-        else {
-          jsonDatos.color2 = this.colorRespuesta[k].color;
-          jsonDatos.color2RGB = this.colorRespuesta[k].colorRGB;
-          jsonDatos.contraste2 = this.colorRespuesta[k].contraste;
-          jsonDatos.contraste2RGB = this.colorRespuesta[k].contrasteRGB;
-          jsonDatos.shade2 = this.colorRespuesta[k].shade;
-          jsonDatos.tint2 = this.colorRespuesta[k].tint;
-        }
-      }
-      genIonic.addDatoConAdicional("src/theme/variables.scss", "src/theme/variables.scss", jsonDatos);
+
+      genIonic.addDatoConAdicional("src/theme/variables.scss", "src/theme/variables.scss", this.jsonDatos);
       let datosEscribirArray: metadataGenerador[] = new Array();
       datosEscribirArray = genIonic.obtenerArchivos();
-
       //se procede a copiar los archivos de la plantilla
       for (let i = 0; i < datosEscribirArray.length; i++) {
         if (datosEscribirArray[i].adicional == null) {
@@ -135,81 +98,27 @@ module.exports = class extends Generator {
         }
       }
 
-      if (!fss.existsSync("resources")) {
-        fss.mkdirSync("resources");
-        console.log("Directorio resources creado.")
-      }
-      else {
-        console.log("Directorio resources ya eciste.")
-      }
-
+      let imagen: Imagenes = new Imagenes("resources", this.respEmpresa.logo, this.respEmpresa.splash);
+      //creando directorio resources si no existe
+      imagen.generarDirectorio();
 
       //copiado de logo
-      let logoUrl: string = this.respEmpresa.logo;
-      if (logoUrl != "") {
-        try {
-          imageDownloader(logoUrl, "resources/logo.png", function () {
-            console.log(`${logoUrl} imagen descargada!!`);
-            console.log("logo.png creado en directorio resources.")
-          });
-        } catch (error) {
-          console.log(error);
-          console.log("No se pudo descargar el logo.");
-        }
-      }
-      if (logoUrl != "") {
-        try {
-          imageDownloader(logoUrl, "src/assets/logo.png", function () {
-            console.log(`${logoUrl} imagen descargada!!`);
-            console.log("logo.png creado en directorio assets.")
-          });
-        } catch (error) {
-          console.log(error);
-          console.log("No se pudo descargar el logo.");
-        }
-      }
+      imagen.generarLogos();
+      
       //copiado de favicon
-      if (logoUrl != "") {
-        try {
-          imageDownloader(logoUrl, "src/assets/icon/favicon.png", function () {
-            console.log(`${logoUrl} favicon descargado!!`);
-            console.log("favicon.png creado en directorio icon.")
-          });
-        } catch (error) {
-          console.log(error);
-          console.log("No se pudo descargar el favicon.");
-        }
-      }
+      imagen.generarFavicon();
 
       //copiado de splash
-      let splashUrl: string = this.respEmpresa.splash;
-      if (splashUrl != "") {
-        try {
-          imageDownloader(splashUrl, "resources/splash.png", function () {
-            console.log(`${splashUrl} imagen descargada!!`);
-            console.log("logo.png creado en directorio resources.")
-          });
-        } catch (error) {
-          console.log(error);
-          console.log("No se pudo descargar el splash screen.");
-        }
-      }
-
-      try {
-        imageDownloader(fontUrl, "src/assets/fonts/slabo.woff2", function () {
-          console.log(`${fontUrl} imagen descargada!!`);
-          console.log("logo.png creado en directorio resources.")
-        });
-      }
-      catch (err) {
-        console.log("fuente error")
-        console.log(err);
-      }
+      imagen.generarSplash();
+      
+      //descargando fuentes
+      let fuentes: Fuentes = new Fuentes(this.respEmpresa.id);
+      fuentes.descargarFuentes();
     }
   }
 
   install() {
-    if (this.respLogin.status) {
+    if (this.respLogin.status && this.plantilla != null) {
       this.npmInstall(['tsd'], { 'global': true });
       this.npmInstall();
     }

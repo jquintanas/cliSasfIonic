@@ -1,10 +1,15 @@
-import { metadataGenerador } from "./metadataGenerador";
+import { metadataGenerador } from "../interfaces/metadataGenerador";
 export class generadorIonic {
     private arrayArchivos: metadataGenerador[];
     private rutabase: string = "ionic/";
 
-    constructor() {
+    constructor(plantilla: string) {
+        this.rutabase += plantilla + "/"
         this.arrayArchivos = new Array();
+        this.arrayArchivos.push({
+            origen: this.rutabase + "resources",
+            destino: "resources"
+        });
         this.arrayArchivos.push({
             origen: this.rutabase + "e2e",
             destino: "e2e"
